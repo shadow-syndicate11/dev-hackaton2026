@@ -33,3 +33,6 @@ class Vehicle(BaseModel):
     turnToDir: Direction | None = None
     waiting: bool = False
     color: str
+    # Датасетаас үүсгэсэн машинд нэмэлт талбарууд
+    fromDataset: bool = False
+    weatherFactor: float = 1.0

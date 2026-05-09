@@ -136,4 +136,8 @@ class SimulationState(BaseModel):
     avgAIWait: int
     busDirections: list[str]
     emergencyDirections: list[str]
+    # Зөвхөн float утгууд — string/bool оруулж болохгүй
     kpis: dict[str, float]
+    # Датасетийн мета утгууд — тусдаа талбарт (kpis-д биш)
+    intersectionName: str = ""
+    datasetLoaded: bool = False

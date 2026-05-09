@@ -10,15 +10,25 @@ from typing import Any
 
 from backend.services.dataset_loader import UBTrafficDatasetLoader
 
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATASET_FILE = BASE_DIR / "data" / "UB_Traffic_Dataset1.csv"
+
 _loader: UBTrafficDatasetLoader | None = None
 
 
 def init_dataset(filepath: str | None = None) -> UBTrafficDatasetLoader:
     global _loader
-    path = Path(filepath or os.getenv("UB_DATASET_PATH", "data/UB_Traffic_Dataset.xlsx"))
+
+    path = Path(filepath or os.getenv("UB_DATASET_PATH", DATASET_FILE))
+
     _loader = UBTrafficDatasetLoader(path).load()
-    print(f"[dataset] Ачааллаа: {len(_loader.df):,} мөр, "
-          f"{_loader.df['intersection_id'].nunique()} уулзвар")
+
+    print(
+        f"[dataset] Ачааллаа: {len(_loader.df):,} мөр, "
+        f"{_loader.df['intersection_id'].nunique()} уулзвар"
+    )
+
     return _loader
 
 

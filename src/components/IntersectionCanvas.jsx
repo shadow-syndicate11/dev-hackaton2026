@@ -7,12 +7,6 @@ const DIR_COLORS = {
   west: '#c653ff',
 }
 
-const LIGHT_COLORS = {
-  green: '#00e676',
-  red: '#ff1744',
-  yellow: '#ffd600',
-}
-
 function phaseDirections(activeDir) {
   return activeDir === 'north' || activeDir === 'south'
     ? ['north', 'south']
@@ -126,7 +120,7 @@ function drawRoad(ctx, W, H) {
   drawDashedLane(ctx, cx + 25, 0, cx + 25, H)
   drawDashedLane(ctx, 0, cy - 25, W, cy - 25)
   drawDashedLane(ctx, 0, cy + 25, W, cy + 25)
-  
+
 
   // Direction labels
   ctx.font = '600 11px Sora, sans-serif'
@@ -145,6 +139,7 @@ function drawRoad(ctx, W, H) {
 function drawTrafficLight(ctx, x, y, signalState = 'green', activeDir, lightDir, hasLeftTurn = false)  {
   const isActiveDir = phaseDirections(activeDir).includes(lightDir)
 
+  // ШАР ГЭРЭЛ: signalState === 'yellow' болон isActiveDir бүхий үед асна
   const isGreen = signalState === 'green' && isActiveDir
   const isYellow = signalState === 'yellow' && isActiveDir
   const isRed = !isGreen && !isYellow
@@ -194,12 +189,26 @@ function drawTrafficLight(ctx, x, y, signalState = 'green', activeDir, lightDir,
   ctx.fill()
   ctx.shadowBlur = 0
 
-  // Left turn arrow signal
+  // Left turn arrow signal - ЗҮҮН ГАР ТИЙШ ЭРГЭХ ГЭРЭЛ
   if (hasLeftTurn) {
+    // Left turn arrow шар гэрэлтэй адилхан үед асна (yellow phase)
+    // Эсвэл ногоон үед асна
+    const isLeftTurnActive = isGreen || isYellow
+
     ctx.font = 'bold 18px Arial'
     ctx.textAlign = 'center'
-    ctx.fillStyle = isGreen ? '#00e676' : isYellow ? '#ffd600' : '#3d0a12'
+
+    if (isLeftTurnActive) {
+      ctx.fillStyle = isYellow ? '#ffd600' : '#00e676'
+      ctx.shadowColor = ctx.fillStyle
+      ctx.shadowBlur = 10
+    } else {
+      ctx.fillStyle = '#3d0a12'
+      ctx.shadowBlur = 0
+    }
+
     ctx.fillText('←', x + 22, y + r * 3.8)
+    ctx.shadowBlur = 0
   }
 }
 
@@ -364,12 +373,12 @@ export default function IntersectionCanvas({ activeDir, phaseTimer, signalState,
       ctx.clearRect(0, 0, W, H)
       drawRoad(ctx, W, H)
 
-      // Traffic lights
+      // Traffic lights - hasLeftTurn=true болгон left turn arrow нэмнэ
       const roadW = 70
-      drawTrafficLight(ctx, cx - roadW - 15, cy - roadW - 40, frameSignalState, frameActiveDir, 'north')
-      drawTrafficLight(ctx, cx + roadW + 5, cy + roadW + 5, frameSignalState, frameActiveDir, 'south')
-      drawTrafficLight(ctx, cx + roadW + 5, cy - roadW - 40, frameSignalState, frameActiveDir, 'east')
-      drawTrafficLight(ctx, cx - roadW - 15, cy + roadW + 5, frameSignalState, frameActiveDir, 'west')
+      drawTrafficLight(ctx, cx - roadW - 15, cy - roadW - 40, frameSignalState, frameActiveDir, 'north', true)
+      drawTrafficLight(ctx, cx + roadW + 5, cy + roadW + 5, frameSignalState, frameActiveDir, 'south', true)
+      drawTrafficLight(ctx, cx + roadW + 5, cy - roadW - 40, frameSignalState, frameActiveDir, 'east', true)
+      drawTrafficLight(ctx, cx - roadW - 15, cy + roadW + 5, frameSignalState, frameActiveDir, 'west', true)
 
       const nextIds = new Set(frameVehicles.map(v => v.id))
       for (const id of displayVehiclesRef.current.keys()) {
@@ -386,19 +395,37 @@ export default function IntersectionCanvas({ activeDir, phaseTimer, signalState,
       // Queue bars
       drawQueueBar(ctx, frameQueues, frameActiveDir, W, H)
 
-      // Phase timer
+      // Phase timer - ШАР ГЭРЭЛ үед шар өнгөөр харуулна
       ctx.font = '700 28px JetBrains Mono, monospace'
       ctx.textAlign = 'center'
       const phase = phaseDirections(frameActiveDir)
-      ctx.fillStyle = DIR_COLORS[phase[0]]
+
+      // Гэрлийн өнгөөс хамааран тооны өнгө өөрчлөгдөнө
+      let timerColor = DIR_COLORS[phase[0]]
+      if (frameSignalState === 'yellow') {
+        timerColor = '#ffd600'  // ШАР
+      } else if (frameSignalState === 'all_red') {
+        timerColor = '#ff1744'  // УЛААН
+      }
+
+      ctx.fillStyle = timerColor
       ctx.shadowColor = ctx.fillStyle
       ctx.shadowBlur = 20
       ctx.fillText(framePhaseTimer, cx, cy + 12)
       ctx.shadowBlur = 0
 
+      // Phase label - ШАР ГЭРЭЛ үед "YELLOW" гэж харуулна
       ctx.font = '500 9px Sora, sans-serif'
       ctx.fillStyle = '#ffffff50'
-      ctx.fillText(`${phase[0].toUpperCase()} + ${phase[1].toUpperCase()} GREEN`, cx, cy + 26)
+
+      let phaseLabel = `${phase[0].toUpperCase()} + ${phase[1].toUpperCase()} GREEN`
+      if (frameSignalState === 'yellow') {
+        phaseLabel = `${phase[0].toUpperCase()} + ${phase[1].toUpperCase()} YELLOW`
+      } else if (frameSignalState === 'all_red') {
+        phaseLabel = 'ALL RED'
+      }
+
+      ctx.fillText(phaseLabel, cx, cy + 26)
 
       // Mode badge
       ctx.font = '600 10px JetBrains Mono, monospace'
